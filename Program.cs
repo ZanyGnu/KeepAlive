@@ -1,67 +1,28 @@
 ﻿
 namespace KeepAlive
 {
-    using Microsoft.Win32;
     using System;
-    using System.Runtime.InteropServices;
     using System.Threading;
 
-    /*
-     * This setting is per thread/application not global, so if you go to ES_CONTINUOUS 
-     * and another app/thread is still setting ES_DISPLAY the display will be kept on.
-     * Setting a flag without also using ES_CONTINUOUS merely resets the idle timer, 
-     * so it does not prevent sleep for an extended period.
-    */
     class Program
     {
-        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        static extern EXECUTION_STATE SetThreadExecutionState(EXECUTION_STATE esFlags);
-        
-        [FlagsAttribute]
-        public enum EXECUTION_STATE : uint
-        {
-            ES_AWAYMODE_REQUIRED = 0x00000040,
-            ES_CONTINUOUS = 0x80000000,
-            ES_DISPLAY_REQUIRED = 0x00000002,
-            ES_SYSTEM_REQUIRED = 0x00000001
-            // Legacy flag, should not be used.
-            // ES_USER_PRESENT = 0x00000004
-        }
+        const string UniqueApplicationId = "89627B5E-BE19-4951-B037-07A127054D2E";
 
         static void Main(string[] args)
         {
-            // prevent the machine from sleeping
-            PreventSleep();
+            CurrentApplication.EnsureSingleInstance(UniqueApplicationId);
+            CurrentApplication.EnsureBackgroundWorker();
+            CurrentApplication.MakeProgramAutoRun();
 
-            // add this program to startup, so that this is run on the next log on
-            RegistryKey add = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-            add.SetValue("Keep Machine Alive", "\"" + System.Reflection.Assembly.GetExecutingAssembly().Location + "\"");
+            // prevent the machine from sleeping
+            ExecutionStatusHelper.PreventSleep();
 
             Console.WriteLine("Machine configured to not sleep.");
-
-            // Sleep forever.
+            
+            // Sleep forever. 
+            // The thread execution state is only valid if the thread is still in an executable state.
             Thread.Sleep(Timeout.Infinite);
         }
 
-        private static void PreventMonitorPowerdown()
-        {
-            SetThreadExecutionState(EXECUTION_STATE.ES_DISPLAY_REQUIRED | EXECUTION_STATE.ES_CONTINUOUS);
-        }
-
-        private static void AllowMonitorPowerdown()
-        {
-            SetThreadExecutionState(EXECUTION_STATE.ES_CONTINUOUS);
-        }
-
-        private static void PreventSleep()
-        {
-            // Prevent Idle-to-Sleep (monitor not affected) (see note above)
-            SetThreadExecutionState(EXECUTION_STATE.ES_CONTINUOUS | EXECUTION_STATE.ES_AWAYMODE_REQUIRED);
-        }
-
-        private static void KeepSystemAwake()
-        {
-            SetThreadExecutionState(EXECUTION_STATE.ES_SYSTEM_REQUIRED);
-        }
     }
 }
