@@ -29,7 +29,7 @@ namespace KeepAlive
         public static void PreventSleep()
         {
             // Prevent Idle-to-Sleep (monitor not affected) (see note above)
-            SetThreadExecutionState(EXECUTION_STATE.ES_CONTINUOUS | EXECUTION_STATE.ES_AWAYMODE_REQUIRED);
+            SetThreadExecutionState(EXECUTION_STATE.ES_CONTINUOUS | EXECUTION_STATE.ES_AWAYMODE_REQUIRED | EXECUTION_STATE.ES_SYSTEM_REQUIRED);
         }
 
         public static void KeepSystemAwake()
